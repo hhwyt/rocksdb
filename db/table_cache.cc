@@ -253,6 +253,10 @@ InternalIterator* TableCache::NewIterator(
     if (options.table_filter &&
         !options.table_filter(*table_reader->GetTableProperties())) {
       result = NewEmptyInternalIterator<Slice>(arena);
+    }
+    // Apply level_filter if set
+    else if (options.level_filter && !options.level_filter(level)) {
+      result = NewEmptyInternalIterator<Slice>(arena);
     } else {
       result = table_reader->NewIterator(
           options, prefix_extractor.get(), arena, skip_filters, caller,

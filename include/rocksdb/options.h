@@ -1764,6 +1764,10 @@ struct ReadOptions {
   // no impact on point lookups.
   // Default: empty (every table will be scanned)
   std::function<bool(const TableProperties&)> table_filter;
+  
+    // Function to filter SST files based on their level.
+  // If it returns false for a file, that file will be skipped during read.
+  std::function<bool(int level)> level_filter = nullptr;
 
   // If auto_readahead_size is set to true, it will auto tune the readahead_size
   // during scans internally.
