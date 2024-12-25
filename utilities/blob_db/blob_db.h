@@ -202,12 +202,6 @@ class BlobDB : public StackableDB {
   using ROCKSDB_NAMESPACE::StackableDB::NewIterator;
   virtual Iterator* NewIterator(const ReadOptions& options) override = 0;
   virtual Iterator* NewIterator(const ReadOptions& options,
-                                ColumnFamilyHandle* column_family,
-                                ColumnFamilyMetaData* metadata) override {
-    assert(false);
-    return nullptr;
-  }
-  virtual Iterator* NewIterator(const ReadOptions& options,
                                 ColumnFamilyHandle* column_family) override {
     if (column_family->GetID() != DefaultColumnFamily()->GetID()) {
       // Blob DB doesn't support non-default column family.
