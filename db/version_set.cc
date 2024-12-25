@@ -1981,6 +1981,9 @@ void Version::AddIterators(const ReadOptions& read_options,
 
   ROCKS_LOG_WARN(vset_->db_options_->info_log, "AddIterators");
 
+  ROCKS_LOG_WARN(vset_->db_options_->info_log,
+                 "filter_max: %d, num_non_empty_levels: %d",
+                 read_options.filter_lmax, storage_info_.num_non_empty_levels());
   bool max_level = read_options.filter_lmax
                        ? storage_info_.num_non_empty_levels() - 1
                        : storage_info_.num_non_empty_levels();
