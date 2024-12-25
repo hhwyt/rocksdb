@@ -1930,6 +1930,7 @@ InternalIterator* DBImpl::NewInternalIterator(
     SuperVersion* super_version, Arena* arena, SequenceNumber sequence,
     bool allow_unprepared_value, ArenaWrappedDBIter* db_iter) {
   InternalIterator* internal_iter;
+  ROCKS_LOG_WARN(immutable_db_options_.info_log, "NewINternalIterator");
   assert(arena != nullptr);
   // Need to create internal iterator from the arena.
   MergeIteratorBuilder merge_iter_builder(
@@ -3932,8 +3933,9 @@ Iterator* DBImpl::NewIterator(const ReadOptions& _read_options,
   assert(cfd != nullptr);
   ReadCallback* read_callback = nullptr;  // No read callback provided.
   SuperVersion* sv = cfd->GetReferencedSuperVersion(this);
-//  ROCKS_LOG_DEBUG(immutable_db_options_.info_log, "read_options.level_filter %d",
-//                 read_options.level_filter == nullptr ? 0 : 1);
+  //  ROCKS_LOG_DEBUG(immutable_db_options_.info_log, "read_options.level_filter
+  //  %d",
+  //                 read_options.level_filter == nullptr ? 0 : 1);
   if (read_options.filter_lmax) {
     sv->current->GetColumnFamilyMetaData(metadata);
   }
@@ -3947,6 +3949,8 @@ Iterator* DBImpl::NewIterator(const ReadOptions& _read_options,
     }
   }
   if (read_options.tailing) {
+    ROCKS_LOG_WARN(immutable_db_options_.info_log, "tailing");
+
     auto iter = new ForwardIterator(this, read_options, cfd, sv,
                                     /* allow_unprepared_value */ true);
     result = NewDBIterator(

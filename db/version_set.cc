@@ -1979,9 +1979,12 @@ void Version::AddIterators(const ReadOptions& read_options,
                            bool allow_unprepared_value) {
   assert(storage_info_.finalized_);
 
+  ROCKS_LOG_WARN(immutable_db_options_.info_log, "AddIterators");
+
   bool max_level = read_options.filter_lmax
                        ? storage_info_.num_non_empty_levels() - 1
                        : storage_info_.num_non_empty_levels();
+  ROCKS_LOG_WARN(immutable_db_options_.info_log, "max_level: %d", max_level);
   for (int level = 0; level < max_level; level++) {
     AddIteratorsForLevel(read_options, soptions, merge_iter_builder, level,
                          allow_unprepared_value);
