@@ -1767,7 +1767,7 @@ struct ReadOptions {
   
     // Function to filter SST files based on their level.
   // If it returns false for a file, that file will be skipped during read.
-  std::function<bool(int level)> level_filter = nullptr;
+  bool filter_lmax = false;
 
   // If auto_readahead_size is set to true, it will auto tune the readahead_size
   // during scans internally.

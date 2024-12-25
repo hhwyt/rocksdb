@@ -1979,7 +1979,10 @@ void Version::AddIterators(const ReadOptions& read_options,
                            bool allow_unprepared_value) {
   assert(storage_info_.finalized_);
 
-  for (int level = 0; level < storage_info_.num_non_empty_levels(); level++) {
+  bool max_level = read_options.filter_lmax
+                       ? storage_info_.num_non_empty_levels() - 1
+                       : storage_info_.num_non_empty_levels();
+  for (int level = 0; level < max_level; level++) {
     AddIteratorsForLevel(read_options, soptions, merge_iter_builder, level,
                          allow_unprepared_value);
   }

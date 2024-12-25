@@ -53,13 +53,11 @@ static Slice GetSliceForFileNumber(const uint64_t* file_number) {
                sizeof(*file_number));
 }
 
-
 void AppendVarint64(IterKey* key, uint64_t v) {
   char buf[10];
   auto ptr = EncodeVarint64(buf, v);
   key->TrimAppend(key->Size(), buf, ptr - buf);
 }
-
 
 }  // anonymous namespace
 
@@ -253,10 +251,10 @@ InternalIterator* TableCache::NewIterator(
     if (options.table_filter &&
         !options.table_filter(*table_reader->GetTableProperties())) {
       result = NewEmptyInternalIterator<Slice>(arena);
-    }
-    // Apply level_filter if set
-    else if (options.level_filter && !options.level_filter(level)) {
-      result = NewEmptyInternalIterator<Slice>(arena);
+      //    }
+      // Apply level_filter if set
+      //    else if (options.level_filter && !options.level_filter(level)) {
+      //      result = NewEmptyInternalIterator<Slice>(arena);
     } else {
       result = table_reader->NewIterator(
           options, prefix_extractor.get(), arena, skip_filters, caller,
