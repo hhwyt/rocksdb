@@ -3932,7 +3932,9 @@ Iterator* DBImpl::NewIterator(const ReadOptions& _read_options,
   assert(cfd != nullptr);
   ReadCallback* read_callback = nullptr;  // No read callback provided.
   SuperVersion* sv = cfd->GetReferencedSuperVersion(this);
+  printf("read_options.level_filter %d", read_options.level_filter == nullptr ? 0 : 1);
   if (read_options.level_filter != nullptr) {
+    printf("Get Metadata");
     sv->current->GetColumnFamilyMetaData(metadata);
   }
 
