@@ -1930,7 +1930,7 @@ InternalIterator* DBImpl::NewInternalIterator(
     SuperVersion* super_version, Arena* arena, SequenceNumber sequence,
     bool allow_unprepared_value, ArenaWrappedDBIter* db_iter) {
   InternalIterator* internal_iter;
-  ROCKS_LOG_WARN(immutable_db_options_.info_log, "NewINternalIterator");
+  ROCKS_LOG_DEBUG(immutable_db_options_.info_log, "NewINternalIterator");
   assert(arena != nullptr);
   // Need to create internal iterator from the arena.
   MergeIteratorBuilder merge_iter_builder(
