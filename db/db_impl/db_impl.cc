@@ -3887,6 +3887,84 @@ Iterator* DBImpl::NewIterator(const ReadOptions& _read_options,
   return result;
 }
 
+Iterator* DBImpl::NewIterator(const ReadOptions& _read_options,
+                              ColumnFamilyHandle* column_family,
+                              ColumnFamilyMetaData* metadata) {
+  assert(metadata != nullptr);
+
+  if (_read_options.io_activity != Env::IOActivity::kUnknown &&
+      _read_options.io_activity != Env::IOActivity::kDBIterator) {
+    return NewErrorIterator(Status::InvalidArgument(
+        "Can only call NewIterator with `ReadOptions::io_activity` is "
+        "`Env::IOActivity::kUnknown` or `Env::IOActivity::kDBIterator`"));
+  }
+  ReadOptions read_options(_read_options);
+  if (read_options.io_activity == Env::IOActivity::kUnknown) {
+    read_options.io_activity = Env::IOActivity::kDBIterator;
+  }
+
+  if (read_options.managed) {
+    return NewErrorIterator(
+        Status::NotSupported("Managed iterator is not supported anymore."));
+  }
+  Iterator* result = nullptr;
+  if (read_options.read_tier == kPersistedTier) {
+    return NewErrorIterator(Status::NotSupported(
+        "ReadTier::kPersistedData is not yet supported in iterators."));
+  }
+  assert(column_family);
+
+  if (read_options.timestamp) {
+    const Status s =
+        FailIfTsMismatchCf(column_family, *(read_options.timestamp));
+    if (!s.ok()) {
+      return NewErrorIterator(s);
+    }
+  } else {
+    const Status s = FailIfCfHasTs(column_family);
+    if (!s.ok()) {
+      return NewErrorIterator(s);
+    }
+  }
+
+  auto cfh = static_cast_with_check<ColumnFamilyHandleImpl>(column_family);
+  ColumnFamilyData* cfd = cfh->cfd();
+  assert(cfd != nullptr);
+  ReadCallback* read_callback = nullptr;  // No read callback provided.
+  SuperVersion* sv = cfd->GetReferencedSuperVersion(this);
+  if (read_options.level_filter != nullptr) {
+    sv->current->GetColumnFamilyMetaData(metadata);
+  }
+
+  if (read_options.timestamp && read_options.timestamp->size() > 0) {
+    const Status s =
+        FailIfReadCollapsedHistory(cfd, sv, *(read_options.timestamp));
+    if (!s.ok()) {
+      CleanupSuperVersion(sv);
+      return NewErrorIterator(s);
+    }
+  }
+  if (read_options.tailing) {
+    auto iter = new ForwardIterator(this, read_options, cfd, sv,
+                                    /* allow_unprepared_value */ true);
+    result = NewDBIterator(
+        env_, read_options, *cfd->ioptions(), sv->mutable_cf_options,
+        cfd->user_comparator(), iter, sv->current, kMaxSequenceNumber,
+        sv->mutable_cf_options.max_sequential_skip_in_iterations, read_callback,
+        this, cfd);
+  } else {
+    // Note: no need to consider the special case of
+    // last_seq_same_as_publish_seq_==false since NewIterator is overridden in
+    // WritePreparedTxnDB
+    result = NewIteratorImpl(read_options, cfd, sv,
+                             (read_options.snapshot != nullptr)
+                                 ? read_options.snapshot->GetSequenceNumber()
+                                 : kMaxSequenceNumber,
+                             read_callback);
+  }
+  return result;
+}
+
 ArenaWrappedDBIter* DBImpl::NewIteratorImpl(
     const ReadOptions& read_options, ColumnFamilyData* cfd, SuperVersion* sv,
     SequenceNumber snapshot, ReadCallback* read_callback,
