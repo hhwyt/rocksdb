@@ -724,11 +724,12 @@ Status ExternalSstFileIngestionJob::GetIngestedFileInfo(
   const auto& uprops = props->user_collected_properties;
 
   // Get table version
-  auto version_iter = uprops.find(ExternalSstFilePropertyNames::kVersion);
-  if (version_iter == uprops.end()) {
-    return Status::Corruption("External file version not found");
-  }
-  file_to_ingest->version = DecodeFixed32(version_iter->second.c_str());
+//  auto version_iter = uprops.find(ExternalSstFilePropertyNames::kVersion);
+//  if (version_iter == uprops.end()) {
+//    return Status::Corruption("External file version not found");
+//  }
+//  file_to_ingest->version = DecodeFixed32(version_iter->second.c_str());
+  file_to_ingest->version = 1;
 
   auto seqno_iter = uprops.find(ExternalSstFilePropertyNames::kGlobalSeqno);
   if (file_to_ingest->version == 2) {
