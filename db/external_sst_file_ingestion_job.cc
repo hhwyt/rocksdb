@@ -751,11 +751,11 @@ Status ExternalSstFileIngestionJob::GetIngestedFileInfo(
     // SST file V1 should not have global seqno field
     assert(seqno_iter == uprops.end());
     file_to_ingest->original_seqno = 0;
-    if (ingestion_options_.allow_blocking_flush ||
-        ingestion_options_.allow_global_seqno) {
-      return Status::InvalidArgument(
-          "External SST file V1 does not support global seqno");
-    }
+//    if (ingestion_options_.allow_blocking_flush ||
+//        ingestion_options_.allow_global_seqno) {
+//      return Status::InvalidArgument(
+//          "External SST file V1 does not support global seqno");
+//    }
   } else {
     return Status::InvalidArgument("External file version is not supported");
   }
