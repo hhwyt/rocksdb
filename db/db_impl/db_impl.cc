@@ -5867,14 +5867,16 @@ Status DBImpl::IngestExternalFiles(
     WaitForPendingWrites();
 
     if (allow_write) {
+      ROCKS_LOG_DEBUG(immutable_db_options_.info_log, "allow_write=true");
       // Resume writes to the DB
       if (two_write_queues_) {
         nonmem_write_thread_.ExitUnbatched(&nonmem_w);
       }
       write_thread_.ExitUnbatched(&w);
     }
-    
-    TEST_SYNC_POINT_CALLBACK("DBImpl::IngestExternalFile:AfterPendingWrites", nullptr);
+
+    TEST_SYNC_POINT_CALLBACK("DBImpl::IngestExternalFile:AfterPendingWrites",
+                             nullptr);
 
     num_running_ingest_file_ += static_cast<int>(num_cfs);
     TEST_SYNC_POINT("DBImpl::IngestExternalFile:AfterIncIngestFileCounter");
@@ -5908,9 +5910,10 @@ Status DBImpl::IngestExternalFiles(
       flush_opts.check_if_compaction_disabled = true;
       if (immutable_db_options_.atomic_flush) {
         mutex_.Unlock();
-        status = AtomicFlushMemTables(
-            flush_opts, FlushReason::kExternalFileIngestion,
-            {} /* provided_candidate_cfds */, !allow_write /* entered_write_thread */);
+        status = AtomicFlushMemTables(flush_opts,
+                                      FlushReason::kExternalFileIngestion,
+                                      {} /* provided_candidate_cfds */,
+                                      !allow_write /* entered_write_thread */);
         mutex_.Lock();
       } else {
         for (size_t i = 0; i != num_cfs; ++i) {
