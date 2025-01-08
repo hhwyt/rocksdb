@@ -5853,7 +5853,12 @@ Status DBImpl::IngestExternalFiles(
     InstrumentedMutexLock l(&mutex_);
     TEST_SYNC_POINT("DBImpl::AddFile:MutexLock");
 
-    // Stop writes to the DB by entering both write threads
+    // Stop writes to the DB by entering both write threads.
+    // Even with allow_write = true, writes to the DB must be temporarily
+    // stopped to wait for pending writes. This is because allow_write = true
+    // only requires users to ensure no concurrent writes overlap with the
+    // ingestion data and does not require ensuring no overlapping
+    // unordered_write before ingestion.
     WriteThread::Writer w;
     write_thread_.EnterUnbatched(&w, &mutex_);
     WriteThread::Writer nonmem_w;
