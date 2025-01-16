@@ -2396,7 +2396,7 @@ TEST_P(ExternalSSTFileTest, WriteDuringIngest) {
 
   // Set callback to simulate concurrent write during ingestion
   SyncPoint::GetInstance()->SetCallBack(
-      "DBImpl::IngestExternalFile:AfterPendingWrites", [&](void*) {
+      "DBImpl::IngestExternalFile:AfterAllowWriteCheck", [&](void*) {
         // Write a non-overlapping key
         ASSERT_OK(Put("foo", "v1"));
       });

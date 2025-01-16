@@ -5853,35 +5853,24 @@ Status DBImpl::IngestExternalFiles(
     InstrumentedMutexLock l(&mutex_);
     TEST_SYNC_POINT("DBImpl::AddFile:MutexLock");
 
-    // Stop writes to the DB by entering both write threads.
-    // Even with allow_write = true, writes to the DB must be temporarily
-    // stopped to wait for pending writes. This is because allow_write = true
-    // only requires users to ensure no concurrent writes overlap with the
-    // ingestion data and does not require ensuring no overlapping
-    // unordered_write before ingestion.
-    WriteThread::Writer w;
-    write_thread_.EnterUnbatched(&w, &mutex_);
-    WriteThread::Writer nonmem_w;
-    if (two_write_queues_) {
-      nonmem_write_thread_.EnterUnbatched(&nonmem_w, &mutex_);
-    }
-
-    // When unordered_write is enabled, the keys are writing to memtable in an
-    // unordered way. If the ingestion job checks memtable key range before the
-    // key landing in memtable, the ingestion job may skip the necessary
-    // memtable flush.
-    // So wait here to ensure there is no pending write to memtable.
-    WaitForPendingWrites();
-
-    if (allow_write) {
-      // If allow_write is true, writes to the DB are resumed here,
-      // allowing users to write normally during the subsequent ingest process.
+    if (!allow_write) {
+      // Stop writes to the DB by entering both write threads.
+      WriteThread::Writer w;
+      write_thread_.EnterUnbatched(&w, &mutex_);
+      WriteThread::Writer nonmem_w;
       if (two_write_queues_) {
-        nonmem_write_thread_.ExitUnbatched(&nonmem_w);
+        nonmem_write_thread_.EnterUnbatched(&nonmem_w, &mutex_);
       }
-      write_thread_.ExitUnbatched(&w);
+
+      // When unordered_write is enabled, the keys are writing to memtable in an
+      // unordered way. If the ingestion job checks memtable key range before
+      // the key landing in memtable, the ingestion job may skip the necessary
+      // memtable flush.
+      // So wait here to ensure there is no pending write to memtable.
+      WaitForPendingWrites();
     }
-    TEST_SYNC_POINT_CALLBACK("DBImpl::IngestExternalFile:AfterPendingWrites",
+
+    TEST_SYNC_POINT_CALLBACK("DBImpl::IngestExternalFile:AfterAllowWriteCheck",
                              nullptr);
 
     num_running_ingest_file_ += static_cast<int>(num_cfs);
@@ -6036,9 +6025,11 @@ Status DBImpl::IngestExternalFiles(
     }
 
     if (!allow_write) {
+      WriteThread::Writer nonmem_w;
       if (two_write_queues_) {
         nonmem_write_thread_.ExitUnbatched(&nonmem_w);
       }
+      WriteThread::Writer w;
       write_thread_.ExitUnbatched(&w);
     }
 
