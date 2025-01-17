@@ -5853,11 +5853,11 @@ Status DBImpl::IngestExternalFiles(
     InstrumentedMutexLock l(&mutex_);
     TEST_SYNC_POINT("DBImpl::AddFile:MutexLock");
 
+    WriteThread::Writer w;
+    WriteThread::Writer nonmem_w;
     if (!allow_write) {
       // Stop writes to the DB by entering both write threads.
-      WriteThread::Writer w;
       write_thread_.EnterUnbatched(&w, &mutex_);
-      WriteThread::Writer nonmem_w;
       if (two_write_queues_) {
         nonmem_write_thread_.EnterUnbatched(&nonmem_w, &mutex_);
       }
@@ -6025,11 +6025,9 @@ Status DBImpl::IngestExternalFiles(
     }
 
     if (!allow_write) {
-      WriteThread::Writer nonmem_w;
       if (two_write_queues_) {
         nonmem_write_thread_.ExitUnbatched(&nonmem_w);
       }
-      WriteThread::Writer w;
       write_thread_.ExitUnbatched(&w);
     }
 
