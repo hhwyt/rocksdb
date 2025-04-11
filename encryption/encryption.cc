@@ -93,13 +93,13 @@ Status AESCTRCipherStream::Cipher(uint64_t file_offset, char* data,
   if (std::numeric_limits<uint64_t>::max() - block_index < initial_iv_low_) {
     iv_high++;
   }
-  unsigned char iv[block_size];
-  PutBigEndian64(iv_high, iv);
-  PutBigEndian64(iv_low, iv + sizeof(uint64_t));
+  std::vector<unsigned char> iv(block_size);
+  PutBigEndian64(iv_high, iv.data());
+  PutBigEndian64(iv_low, iv.data() + sizeof(uint64_t));
 
   ret = EVP_CipherInit(ctx, cipher_,
-                       reinterpret_cast<const unsigned char*>(key_.data()), iv,
-                       (is_encrypt ? 1 : 0));
+                       reinterpret_cast<const unsigned char*>(key_.data()),
+                       iv.data(), (is_encrypt ? 1 : 0));
   if (ret != 1) {
     return Status::IOError("Failed to init cipher.");
   }
