@@ -406,8 +406,7 @@ bool DBIter::FindNextUserEntryInternal(bool skipping_saved_key,
                                       !iter_.iter()->IsKeyPinned() /* copy */);
             }
 
-            if (ikey_.type == kTypeBlobIndex ||
-                ikey_.type == kTypeTitanBlobIndex) {
+            if (ikey_.type == kTypeBlobIndex) {
               if (!SetBlobValueIfNeeded(ikey_.user_key, iter_.value())) {
                 return false;
               }
@@ -419,7 +418,14 @@ bool DBIter::FindNextUserEntryInternal(bool skipping_saved_key,
                 return false;
               }
             } else {
-              assert(ikey_.type == kTypeValue);
+              // Titan blob index should be handled as plain value by RocksDB,
+              // should not go through SetBlobValueIfNeeded().
+              // Even though Titan bypasses the real blob index evaluation
+              // by propagating expose_blob_index_.option. This is to prevent
+              // TiKV, that directly uses RocksDB, from trying to evaluate the
+              // orphaned blob indices after Titan is disabled.
+              assert(ikey_.type == kTypeValue ||
+                     ikey_.type == kTypeTitanBlobIndex);
               SetValueAndColumnsFromPlain(iter_.value());
             }
 
