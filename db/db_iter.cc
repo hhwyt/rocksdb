@@ -417,15 +417,17 @@ bool DBIter::FindNextUserEntryInternal(bool skipping_saved_key,
               if (!SetValueAndColumnsFromEntity(iter_.value())) {
                 return false;
               }
-            } else {
+            } else if (ikey_.type == kTypeTitanBlobIndex) {
               // Titan blob index should be handled as plain value by RocksDB,
               // should not go through SetBlobValueIfNeeded().
               // Even though Titan bypasses the real blob index evaluation
               // by propagating expose_blob_index_.option. This is to prevent
               // TiKV, that directly uses RocksDB, from trying to evaluate the
               // orphaned blob indices after Titan is disabled.
-              assert(ikey_.type == kTypeValue ||
-                     ikey_.type == kTypeTitanBlobIndex);
+              is_blob_ = true;
+              SetValueAndColumnsFromPlain(iter_.value());
+            } else {
+              assert(ikey_.type == kTypeValue);
               SetValueAndColumnsFromPlain(iter_.value());
             }
 
