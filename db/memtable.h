@@ -29,6 +29,9 @@
 #include "rocksdb/memtablerep.h"
 #include "table/multiget_context.h"
 #include "util/dynamic_bloom.h"
+#ifndef NDEBUG
+#include "test_util/sync_point.h"
+#endif
 #include "util/hash.h"
 #include "util/hash_containers.h"
 
@@ -719,7 +722,7 @@ class MemTable {
 
   inline DynamicBloom* GetBloomFilter() {
     if (needs_bloom_filter_) {
-      auto ptr = bloom_filter_ptr_.load(std::memory_order_relaxed);
+      auto ptr = bloom_filter_ptr_.load(std::memory_order_acquire);
       if (UNLIKELY(ptr == nullptr)) {
         std::lock_guard<SpinMutex> guard(bloom_filter_mutex_);
         if (bloom_filter_ == nullptr) {
@@ -729,7 +732,7 @@ class MemTable {
                                moptions_.memtable_huge_page_size, logger_));
         }
         ptr = bloom_filter_.get();
-        bloom_filter_ptr_.store(ptr, std::memory_order_relaxed);
+        bloom_filter_ptr_.store(ptr, std::memory_order_release);
       }
       return ptr;
     }
