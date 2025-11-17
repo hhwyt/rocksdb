@@ -719,12 +719,15 @@ class MemTable {
 
   inline DynamicBloom* GetBloomFilter() {
     if (needs_bloom_filter_) {
-      // Uses release-acquire to prevent data race on ARM weak memory model.
-      // Without it: Thread1 may publish ptr before DynamicBloom::data_ is
-      // initialized, Thread2 may see non-null ptr but access uninitialized
-      // data_ (crash). With release-acquire: store(release) ensures all prior
-      // writes are visible, load(acquire) ensures we see them, guaranteeing
-      // fully initialized object.
+      // Uses release-acquire to prevent data race on weak memory models (e.g.,
+      // ARM). Without it: Thread1 in DynamicBloom::new() first initializes
+      // data_, then stores bloom_filter_ptr_. With relaxed ordering, these two
+      // writes may reach another CPU's cache in reversed order, causing Thread2
+      // to see non-null bloom_filter_ptr_ but uninitialized data_ (crash). With
+      // release-acquire: store(release) ensures all prior writes (including
+      // data_ initialization) are visible before bloom_filter_ptr_ update,
+      // load(acquire) ensures we see them in order, guaranteeing fully
+      // initialized object.
       // Performance: This load() executes on every read/write call (hot path).
       // Acquire vs relaxed overhead: On x86, both compile to the same
       // instruction (MOV), so cost is identical. On ARM, acquire may add a
