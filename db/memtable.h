@@ -719,7 +719,23 @@ class MemTable {
 
   inline DynamicBloom* GetBloomFilter() {
     if (needs_bloom_filter_) {
-      auto ptr = bloom_filter_ptr_.load(std::memory_order_relaxed);
+      // Uses release-acquire to prevent data race on ARM weak memory model.
+      // Without it: Thread1 may publish ptr before DynamicBloom::data_ is
+      // initialized, Thread2 may see non-null ptr but access uninitialized
+      // data_ (crash). With release-acquire: store(release) ensures all prior
+      // writes are visible, load(acquire) ensures we see them, guaranteeing
+      // fully initialized object.
+      // Performance: This load() executes on every read/write call (hot path).
+      // Acquire vs relaxed overhead: On x86, both compile to the same
+      // instruction (MOV), so cost is identical. On ARM, acquire may add a
+      // memory barrier (~1-3 cycles). In practice, since bloom_filter_ptr_ is
+      // written once (during initialization with release) and then only read,
+      // the cache line is typically in Shared state at runtime, meaning both
+      // acquire and relaxed loads read from local cache with similar
+      // performance. The acquire overhead is typically negligible compared to
+      // subsequent bloom filter operations (hash computation and memory
+      // access).
+      auto ptr = bloom_filter_ptr_.load(std::memory_order_acquire);
       if (UNLIKELY(ptr == nullptr)) {
         std::lock_guard<SpinMutex> guard(bloom_filter_mutex_);
         if (bloom_filter_ == nullptr) {
@@ -729,7 +745,7 @@ class MemTable {
                                moptions_.memtable_huge_page_size, logger_));
         }
         ptr = bloom_filter_.get();
-        bloom_filter_ptr_.store(ptr, std::memory_order_relaxed);
+        bloom_filter_ptr_.store(ptr, std::memory_order_release);
       }
       return ptr;
     }
